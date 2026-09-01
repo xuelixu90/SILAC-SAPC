@@ -62,7 +62,7 @@ install.packages(c("readxl", "dplyr", "magrittr", "purrr", "tibble",
                    "stringr", "tidyr", "writexl", "ggplot2"))
 
 # Install from local source (optional --build to produce a zip)
-install.packages("F:/WYF/NP_1/code/SerumSourceAnalyzer", repos = NULL, type = "source")
+install.packages("./code/SerumSourceAnalyzer", repos = NULL, type = "source")
 ```
 
 ## 3. Quick Start (one-call full analysis)
@@ -71,8 +71,8 @@ install.packages("F:/WYF/NP_1/code/SerumSourceAnalyzer", repos = NULL, type = "s
 library(SerumSourceAnalyzer)
 
 res <- run_serum_source_analysis(
-  input_file  = "F:/WYF/NP_1/MaxQuant_annotated_with_total.xlsx",
-  output_dir  = "F:/WYF/NP_1/Serum_source_analysis_all_groups_1",
+  input_file  = "./MaxQuant_annotated_with_total.xlsx",
+  output_dir  = "./Serum_source_analysis_all_groups_1",
   make_plots  = TRUE,
   write_report = TRUE
 )
@@ -125,7 +125,7 @@ rmarkdown::render(
   "inst/rmarkdown/analysis_notebook.Rmd",
   output_dir = "output_dir",
   params = list(
-    INPUT_FILE  = "F:/WYF/NP_1/MaxQuant_annotated_with_total.xlsx",
+    INPUT_FILE  = "./MaxQuant_annotated_with_total.xlsx",
     OUTPUT_DIR  = "output_dir",
     PARAMS      = list(),
     SAMPLE_INFO = NULL,
@@ -186,7 +186,7 @@ serum_fraction = serum_L / (A + serum_L)
 ## 5. Step-by-Step Usage (flexible API)
 
 ```r
-raw  <- read_input_data("F:/WYF/NP_1/MaxQuant_annotated_with_total.xlsx")
+raw  <- read_input_data("./MaxQuant_annotated_with_total.xlsx")
 si   <- build_sample_info()                # sample mapping (en dash column names)
 prep <- prepare_long_data(raw, si)         # $data_converted / $annotation / $lh_long
 bg   <- compute_ucev_background(prep$lh_long)
@@ -231,5 +231,5 @@ Adding new experimental groups: simply extend the mapping table returned by `bui
 ## 8. Testing
 
 ```r
-testthat::test_local("F:/WYF/NP_1/code/SerumSourceAnalyzer")
+testthat::test_local("./code/SerumSourceAnalyzer")
 ```
