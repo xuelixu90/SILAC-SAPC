@@ -1,0 +1,119 @@
+---
+title: "SerumSourceAnalyzer: Heavy/Light Isotope-Based Serum Source Analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{SerumSourceAnalyzer: Heavy/Light Isotope-Based Serum Source Analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>",
+  fig.width = 8,
+  fig.height = 5.5
+)
+```
+
+```{r setup, message = FALSE}
+library(SerumSourceAnalyzer)
+library(ggplot2)
+```
+
+# 1. Introduction
+
+`SerumSourceAnalyzer` analyzes SILAC-style Heavy/Light dual-channel labeled EV proteomics data. Using UCEV as the control, it classifies proteins in each target group as **serum-derived**:
+
+- **Paired-channel mode** (Case 1/2): the target group's Light fraction significantly exceeds the UCEV background and passes replicate support, CV, and CI checks -> Source-corrected (high/medium confidence, single-peptide candidates);
+- **Control-absent mode** (Case 3/4): UCEV has both channels completely missing but the target shows a Light-dominant signal -> Acquired-only (Level 1/2);
+- p0 (the UCEV heavy-labeling rate) is used for **source correction** to estimate the serum fraction, and calibrated serum Light intensities are output.
+
+# 2. One-call Full Analysis (real data)
+
+```{r real-data, eval = FALSE}
+res <- run_serum_source_analysis(
+  input_file = "F:/WYF/NP_1/MaxQuant_annotated_with_total.xlsx",
+  output_dir = "F:/WYF/NP_1/Serum_source_analysis_all_groups_1"
+)
+# Output directory contains: Analysis_Report.md, plots/*.png, all CSV/XLSX result tables
+```
+
+# 3. Step-by-Step Pipeline (mini synthetic demo)
+
+Construct a 3-protein x 2-group x 2-replicate mini dataset matching the MaxQuant annotation table structure.
+
+```{r mini-data}
+mini <- tibble::tibble(
+  `Protein IDs` = c("P_ALB", "P_RES", "P_ACQ"),
+  `Representive ID` = c("P_ALB", "P_RES", "P_ACQ"),
+  `Protein names` = c("Albumin", "Residual", "Acquired"),
+  `Gene names` = c("ALB", "RES", "ACQ"),
+  In_house_db = c("in_house_serum", NA, NA),
+  Plasma_Altas_db = c("PA001", NA, "PA003"),
+  "Intensity L C1" = c(1000, 1000, NA), "Intensity H C1" = c(500, 500, NA),
+  "Intensity L C2" = c(1100, 950, NA), "Intensity H C2" = c(550, 480, NA),
+  "Intensity L T1" = c(2000, 1000, 1500), "Intensity H T1" = c(400, 480, NA),
+  "Intensity L T2" = c(2100, 980, 1400), "Intensity H T2" = c(420, 500, NA),
+  "Unique peptides C1" = c(5, 5, NA), "Unique peptides C2" = c(5, 5, NA),
+  "Unique peptides T1" = c(5, 5, 3), "Unique peptides T2" = c(5, 5, 3)
+)
+
+si <- tibble::tibble(
+  sample_id = c("C1", "C2", "T1", "T2"),
+  group = c("CTR", "CTR", "TGT", "TGT"),
+  light_column = paste("Intensity L", sample_id),
+  heavy_column = paste("Intensity H", sample_id),
+  peptide_column = paste("Unique peptides", sample_id)
+)
+```
+
+```{r pipeline}
+prep <- prepare_long_data(mini, si)
+bg   <- compute_ucev_background(prep$lh_long, "CTR")
+res  <- analyze_one_group(prep$lh_long, prep$annotation, "CTR", "TGT",
+                          global_fraction_sd_floor = bg$global_fraction_sd_floor)
+
+res %>%
+  dplyr::select(Protein_Row_ID, assigned_case, classification,
+                UCEV_heavy_labeling_p0, Light_fraction_excess,
+                estimated_serum_fraction)
+```
+
+The three proteins are classified respectively as:
+
+- `P_ALB`: target Light fraction exceeds control -> **Source-corrected, high confidence**
+- `P_RES`: no difference from background -> Ambiguous / Likely_residual
+- `P_ACQ`: control completely absent, target has Light-dominant signal -> **Acquired-only (Level 1)**
+
+```{r calibration}
+full <- calibrate_serum_light(res, prep$data_converted, si, "TGT", "CTR")
+full[, c("Protein_Row_ID", "Serum_L_Calibrated T1", "Serum_L_Calibrated T2")]
+```
+
+# 4. Visualization
+
+```{r plots}
+cs <- res %>% dplyr::count(comparison, assigned_case, classification,
+                           name = "protein_count")
+plot_classification_summary(cs)
+plot_excess_distribution(res)
+plot_excess_vs_probability(res)
+plot_serum_fraction(full)
+```
+
+# 5. Output System
+
+`run_serum_source_analysis()` produces the following in the output directory:
+
+1. `Analysis_Report.md` -- Markdown report (methods, parameters, summary tables, embedded figures);
+2. `plots/` -- 7 PNG figures (classification summary, excess distribution, volcano-style scatter, serum fraction, database evidence, UCEV background, top-protein heatmap);
+3. Per-comparison subdirectories + category-wise CSVs, merged tables, database annotation tables;
+4. `Serum_Source_Analysis_All_Groups_Summary.xlsx` summary workbook.
+
+Figures can also be saved individually:
+
+```{r save-plot, eval = FALSE}
+ggsave("classification.png", plot_classification_summary(res$case_summary),
+       width = 9, height = 6, dpi = 300)
+```
