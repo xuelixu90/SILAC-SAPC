@@ -83,6 +83,8 @@ After completion, `output_dir` contains:
 | File | Content |
 |---|---|
 | `Analysis_Report.md` | **Markdown analysis report (with all figures)** |
+| `Analysis_Notebook.nb.html` | **Interactive HTML notebook — open in any browser to review the full execution log (code + output + figures)** |
+| `Analysis_Notebook.html` / `Analysis_Notebook.md` | Print-friendly HTML and plain Markdown versions of the notebook |
 | `plots/*.png` | 7 key visualizations |
 | `00_All_Comparisons_Merged_Results.csv` | Per-protein results for all comparisons |
 | `00_All_Comparisons_Primary_Serum_Derived_Merged.csv` | Merged primary serum-derived proteins |
@@ -93,6 +95,46 @@ After completion, `output_dir` contains:
 | `Serum_Source_Analysis_All_Groups_Summary.xlsx` | Key-table summary workbook |
 
 The return value `res` is a list containing `results` (per-protein statistics), `all_merged`, `primary_serum`, `case_summary`, `plots`, etc., which can be used for further analysis.
+
+### 3.1 Viewing the HTML Notebook Interface
+
+The package ships an execution notebook (`inst/rmarkdown/analysis_notebook.Rmd`) that re-runs the whole pipeline and captures code, console messages, intermediate tables, and every figure into one **self-contained HTML file**. Three ways to view it:
+
+**(a) Automatic (default)** — `run_serum_source_analysis()` renders the notebook as part of the run (`render_notebook = TRUE` is the default). Double-click the generated file to open it in any browser:
+
+```
+output_dir/
+├── Analysis_Notebook.nb.html   <- interactive notebook (code folding, TOC)
+├── Analysis_Notebook.html      <- print-friendly HTML
+└── Analysis_Notebook.md        <- plain Markdown
+```
+
+**(b) Standalone function** — render the notebook for an existing analysis without re-running the full pipeline wrapper:
+
+```r
+SerumSourceAnalyzer::render_analysis_notebook(
+  input_file = "F:/WYF/NP_1/MaxQuant_annotated_with_total.xlsx",
+  output_dir = "F:/WYF/NP_1/Serum_source_analysis_all_groups_1"
+)
+```
+
+**(c) Manual `rmarkdown::render()`** — full control over parameters:
+
+```r
+rmarkdown::render(
+  "inst/rmarkdown/analysis_notebook.Rmd",
+  output_dir = "output_dir",
+  params = list(
+    INPUT_FILE  = "F:/WYF/NP_1/MaxQuant_annotated_with_total.xlsx",
+    OUTPUT_DIR  = "output_dir",
+    PARAMS      = list(),
+    SAMPLE_INFO = NULL,
+    LIB_DIR     = NULL
+  )
+)
+```
+
+**Requirements**: `rmarkdown` + `knitr` (`install.packages(c("rmarkdown", "knitr"))`) and pandoc (bundled with RStudio; the package auto-detects RStudio's pandoc in non-interactive sessions). If rendering is skipped due to missing dependencies, a warning is emitted and the rest of the analysis is unaffected.
 
 ## 4. Analysis Logic Details
 
