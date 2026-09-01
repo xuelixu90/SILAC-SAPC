@@ -72,7 +72,7 @@ library(SerumSourceAnalyzer)
 
 res <- run_serum_source_analysis(
   input_file  = "./MaxQuant_annotated_with_total.xlsx",
-  output_dir  = "./Serum_source_analysis_all_groups_1",
+  output_dir  = "./Serum_source_analysis_all_groups",
   make_plots  = TRUE,
   write_report = TRUE
 )
@@ -101,7 +101,7 @@ The return value `res` is a list containing `results` (per-protein statistics), 
 The package ships an execution notebook (`inst/rmarkdown/analysis_notebook.Rmd`) that re-runs the whole pipeline and captures code, console messages, intermediate tables, and every figure into one **self-contained HTML file**. Three ways to view it:
 
 > **Live example**: see a rendered notebook online (no installation needed) at
-> [htmlpreview.github.io/?.../analysis_notebook.nb.html](https://htmlpreview.github.io/?https://github.com/xuelixu90/SILAC-SAPC/blob/main/inst/rmarkdown/analysis_notebook.nb.html)
+> [Heavy/Light Isotope-Based Serum Source Analysis/analysis_notebook](https://htmlpreview.github.io/?https://github.com/xuelixu90/SILAC-SAPC/blob/main/inst/rmarkdown/analysis_notebook.nb.html)
 > 
 **(a) Automatic (default)** — `run_serum_source_analysis()` renders the notebook as part of the run (`render_notebook = TRUE` is the default). Double-click the generated file to open it in any browser:
 
