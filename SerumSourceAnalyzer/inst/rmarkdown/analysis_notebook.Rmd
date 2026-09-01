@@ -1,0 +1,323 @@
+---
+title: "Heavy/Light Isotope-Based Serum Source Analysis — Execution Notebook"
+author: "SerumSourceAnalyzer package"
+date: "`r Sys.Date()`"
+params:
+  INPUT_FILE:  ~
+  OUTPUT_DIR:  ~
+  PARAMS:      ~
+  SAMPLE_INFO: ~
+  LIB_DIR:     ~
+output:
+  html_notebook:
+    toc: true
+    toc_float: true
+    number_sections: true
+    theme: cosmo
+    code_folding: show
+    fig_width: 9
+    fig_height: 5
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    theme: cosmo
+    code_folding: show
+    self_contained: true
+    fig_width: 9
+    fig_height: 5
+  md_document:
+    toc: true
+    variant: gfm
+    fig_width: 9
+    fig_height: 5
+    preserve_yaml: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo        = TRUE,
+  warning     = TRUE,
+  message     = TRUE,
+  error       = FALSE,
+  comment     = "",
+  cache       = FALSE,
+  fig.align   = "center"
+)
+```
+
+# Setup
+
+This notebook reproduces the full Heavy/Light serum-source analysis pipeline
+implemented in the `SerumSourceAnalyzer` R package.  It calls the main
+`run_serum_source_analysis()` orchestrator (with `render_notebook=FALSE` to
+avoid recursion) and then surfaces every intermediate object: console
+messages, input shapes, classification summaries, all ggplot figures and
+final output tables.  The resulting HTML file is **self-contained** — open
+it directly in any modern browser to review the complete execution log.
+
+```{r load-pkg, message=TRUE}
+.libPaths(c(params$LIB_DIR, .libPaths()))
+suppressPackageStartupMessages({
+  library(SerumSourceAnalyzer)
+  library(ggplot2)
+  library(dplyr)
+})
+cat("SerumSourceAnalyzer version :", as.character(packageVersion("SerumSourceAnalyzer")), "\n")
+cat("Output directory            :", params$OUTPUT_DIR, "\n")
+cat("Input workbook              :", basename(params$INPUT_FILE), "\n")
+```
+
+---
+
+# Parameters
+
+The user-visible parameter object from `serum_source_params()` and the
+sample-to-column mapping used for this run.
+
+```{r params}
+input_file  <- params$INPUT_FILE
+output_dir  <- params$OUTPUT_DIR
+params_obj  <- if (inherits(params$PARAMS, "serum_source_params")) {
+  params$PARAMS
+} else {
+  do.call(serum_source_params, params$PARAMS)
+}
+sample_info <- if (is.null(params$SAMPLE_INFO)) build_sample_info() else params$SAMPLE_INFO
+
+print(params_obj)
+cat("\nGroups to analyse:", paste(unique(sample_info$group), collapse = ", "), "\n")
+```
+
+## Sample ↔ MaxQuant column mapping
+
+```{r sample-map}
+knitr::kable(
+  as.data.frame(sample_info)[, c("sample_id", "group",
+                                 "light_column", "heavy_column",
+                                 "peptide_column")],
+  row.names = FALSE,
+  caption = "Sample mapping (en-dash MaxQuant column names)"
+)
+```
+
+---
+
+# Step 1 — Run the complete pipeline
+
+All reading, preparation, classification, source correction, output saving,
+plot generation and Markdown-report writing happens in this one call.  We
+set `render_notebook = FALSE` here because **this** Rmd is the notebook
+itself; recursion would otherwise loop forever.
+
+```{r step1-run, fig.show='hide', results='hold'}
+start_time <- Sys.time()
+pipeline_res <- run_serum_source_analysis(
+  input_file      = input_file,
+  output_dir      = output_dir,
+  sample_info     = sample_info,
+  params          = params_obj,
+  save_outputs    = TRUE,
+  make_plots      = TRUE,
+  write_report    = TRUE,
+  render_notebook = FALSE
+)
+elapsed <- round(difftime(Sys.time(), start_time, units = "secs"), 1)
+cat("Pipeline finished in", as.numeric(elapsed), "seconds.\n")
+```
+
+---
+
+# Step 2 — Input & preparation
+
+```{r step2-shapes}
+cat("Annotated proteins (rows)           :",
+    formatC(nrow(pipeline_res$annotation), format = "d", big.mark = ","), "\n")
+cat("Per-protein / per-replicate rows    :",
+    formatC(nrow(pipeline_res$lh_long), format = "d", big.mark = ","), "\n")
+cat("UCEV proteins (SD estimate base)    :",
+    formatC(length(unique(pipeline_res$ucev_sd$Protein_Row_ID)),
+            format = "d", big.mark = ","), "\n")
+cat("Global Light-fraction SD floor      :",
+    signif(pipeline_res$global_fraction_sd_floor, 4), "\n")
+```
+
+## First 6 proteins × first 8 annotation columns
+
+```{r step2-head}
+knitr::kable(
+  utils::head(as.data.frame(pipeline_res$annotation), 6)[, seq_len(min(8, ncol(pipeline_res$annotation)))],
+  row.names = FALSE,
+  caption = "Head of protein annotation table"
+)
+```
+
+## Head of per-replicate Heavy/Light table
+
+```{r step2-head-long}
+knitr::kable(
+  utils::head(as.data.frame(pipeline_res$lh_long), 8),
+  row.names = FALSE,
+  caption = "Head of the long-format Heavy/Light table"
+)
+```
+
+---
+
+# Step 3 — Classification summary
+
+Wide-format counts of each classification bucket per comparison group.
+
+```{r step3-summary-wide}
+cs <- as.data.frame(pipeline_res$case_summary)
+cs$protein_count <- as.integer(cs$protein_count)
+wide <- reshape(
+  cs[, c("comparison", "classification", "protein_count")],
+  idvar     = "comparison",
+  timevar   = "classification",
+  direction = "wide"
+)
+names(wide) <- sub("^protein_count\\.", "", names(wide))
+wide <- wide[order(wide$comparison), ]
+for (cc in setdiff(names(wide), "comparison")) {
+  wide[[cc]][is.na(wide[[cc]])] <- 0L
+}
+knitr::kable(wide, row.names = FALSE,
+             caption = "Classification counts per comparison (wide)")
+```
+
+## Primary serum-derived protein counts
+
+```{r step3-primary}
+prim_count <- pipeline_res$primary_serum %>%
+  dplyr::count(comparison, name = "Primary_serum_proteins")
+knitr::kable(as.data.frame(prim_count), row.names = FALSE)
+```
+
+## Case breakdown by comparison and assigned case
+
+```{r step3-case-long}
+knitr::kable(as.data.frame(pipeline_res$case_summary),
+             row.names = FALSE,
+             caption = "Full case × classification breakdown")
+```
+
+---
+
+# Step 4 — Visualisations
+
+Every ggplot object produced by the pipeline is redrawn below so you can
+inspect them directly in the notebook.  PNG copies of all these plots also
+live under `plots/` inside the output directory.
+
+```{r step4-classification, fig.height=5.2}
+pipeline_res$plots$classification_summary
+```
+
+```{r step4-excess-dist, fig.height=6}
+pipeline_res$plots$excess_distribution
+```
+
+```{r step4-excess-vs-prob, fig.height=5.8}
+pipeline_res$plots$excess_vs_probability
+```
+
+```{r step4-serum-frac, fig.height=5.2}
+pipeline_res$plots$serum_fraction
+```
+
+```{r step4-database, fig.height=5.0}
+pipeline_res$plots$database_evidence
+```
+
+```{r step4-ucev-bg, fig.height=4.8}
+pipeline_res$plots$ucev_background
+```
+
+```{r step4-heatmap, fig.height=10}
+pipeline_res$plots$excess_heatmap
+```
+
+---
+
+# Step 5 — Database evidence for primary serum proteins
+
+```{r step5-db}
+knitr::kable(
+  as.data.frame(pipeline_res$database_summary),
+  row.names = FALSE,
+  caption = "Protein counts split by comparison × classification × database evidence"
+)
+```
+
+---
+
+# Step 6 — Top 10 serum candidates per group
+
+```{r step6-top10}
+top10 <- pipeline_res$primary_serum %>%
+  dplyr::group_by(comparison) %>%
+  dplyr::arrange(dplyr::desc(Light_fraction_excess), .by_group = TRUE) %>%
+  dplyr::slice_head(n = 10) %>%
+  dplyr::ungroup() %>%
+  dplyr::transmute(
+    Group           = comparison,
+    Gene            = Gene_names,
+    Protein         = substr(Protein_IDs, 1, 40),
+    Classification  = classification,
+    `Light excess`  = round(Light_fraction_excess, 3),
+    `Serum fraction`= round(estimated_serum_fraction, 3),
+    `CV (serum fr.)`= round(serum_fraction_CV, 3),
+    `Database`      = Database_evidence
+  )
+knitr::kable(as.data.frame(top10), row.names = FALSE,
+             caption = "Top 10 serum-derived candidates per comparison group, ranked by Light-fraction excess")
+```
+
+---
+
+# Step 7 — Outputs written to disk
+
+The following files were written inside the output directory.  All paths are
+relative to `params$OUTPUT_DIR`.
+
+```{r step7-files}
+files <- list.files(output_dir, recursive = FALSE, all.files = FALSE,
+                    include.dirs = FALSE)
+dirs  <- list.dirs(output_dir, recursive = FALSE, full.names = FALSE)
+info  <- data.frame(
+  Name     = c(files, dirs),
+  Type     = c(rep("file",     length(files)),
+               rep("directory", length(dirs))),
+  `Size KB`= c(round(file.size(file.path(output_dir, files)) / 1024, 1),
+               rep(NA_real_, length(dirs))),
+  check.names = FALSE,
+  stringsAsFactors = FALSE
+)
+info <- info[order(info$Type, info$Name), ]
+knitr::kable(info, row.names = FALSE,
+             caption = "Top-level files produced by the pipeline run")
+```
+
+## Location of the Markdown summary report
+
+The plain-Markdown summary report (short version, no code log) is at:
+
+```{r step7-report-ref, results='asis'}
+rep_md <- file.path(output_dir, "Analysis_Report.md")
+cat("* **Markdown summary** : `", rep_md, "` (",
+    ifelse(file.exists(rep_md), paste(round(file.size(rep_md) / 1024, 1), "KB"), "missing"),
+    ")\n", sep = "")
+```
+
+---
+
+# R session information
+
+For reproducibility — R version, attached packages, OS details.
+
+```{r session-info}
+utils::sessionInfo()
+```
+
+Total wall-clock time for this notebook run: **`r as.numeric(elapsed)` seconds**.
