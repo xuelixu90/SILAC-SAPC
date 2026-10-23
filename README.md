@@ -331,7 +331,21 @@ Adding new experimental groups: simply extend the mapping table returned by
 `build_sample_info()` (keep en dash column names), and pass the group names
 to `target_groups`.
 
-## 8. Testing
+## 8. Full Analysis Report
+
+A complete HTML analysis report (TOC, code, tables and all figures) generated
+with the NP_1 dataset is available in `docs/index.html`.
+
+> **View it online**: once GitHub Pages is enabled (Settings → Pages →
+> Source: `Deploy from a branch` → Branch: `main` / `/docs`), open
+> <https://xuelixu90.github.io/SILAC-SAPC/>.
+
+The report reproduces the full Heavy/Light serum-source workflow: 5,298
+proteins across 4 target groups vs the UCEV control, producing a
+classification summary of 54 rows and 535 primary serum-derived proteins
+(value-by-value identical to the original script).
+
+## 9. Testing
 
 ```r
 testthat::test_local("path/to/serumsource")
