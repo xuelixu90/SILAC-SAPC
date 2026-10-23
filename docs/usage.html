@@ -1,9 +1,9 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>serumsource 使用指南 — 给非程序员</title>
+<title>serumsource Usage Guide — for non-programmers</title>
 <style>
   :root{
     --bg:#f7f9fc; --card:#fff; --ink:#2c3e50; --muted:#6b7c93;
@@ -11,7 +11,7 @@
     --border:#e4e9f2; --green:#1a7f37; --orange:#bf3989;
   }
   *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,"Segoe UI","PingFang SC","Microsoft YaHei",sans-serif;
+  body{font-family:-apple-system,"Segoe UI","Helvetica Neue",sans-serif;
        background:var(--bg);color:var(--ink);line-height:1.7;padding:2rem 1rem;max-width:880px;margin:0 auto}
   h1{font-size:1.7rem;margin-bottom:.3rem}
   h2{font-size:1.25rem;color:var(--accent-dark);margin:2.2rem 0 .8rem;border-left:4px solid var(--accent);padding-left:.7rem}
@@ -43,87 +43,87 @@
 </head>
 <body>
 
-<h1>serumsource 使用指南</h1>
-<p class="lead">这份指南写给不懂代码的研究者。你只需要 <b>复制几段代码</b>、<b>改几个路径</b>，就能跑完整个血清来源分析。</p>
+<h1>serumsource Usage Guide</h1>
+<p class="lead">Written for researchers who don't code. Just <b>copy a few snippets</b>, <b>change two paths</b>, and the full serum-source analysis runs end to end.</p>
 
 <div class="toc">
-<b>目录：</b>
-<a href="#what">1. 这是什么</a>
-<a href="#prepare">2. 准备数据</a>
-<a href="#three-steps">3. 三步搞定</a>
-<a href="#results">4. 结果长什么样</a>
-<a href="#change">5. 换自己的数据怎么改</a>
-<a href="#faq">6. 常见问题</a>
+<b>Contents:</b>
+<a href="#what">1. What it is</a>
+<a href="#prepare">2. Prepare your data</a>
+<a href="#three-steps">3. Three steps</a>
+<a href="#results">4. What you get</a>
+<a href="#change">5. Adapting to your own data</a>
+<a href="#faq">6. FAQ</a>
 </div>
 
-<h2 id="what">1. 这是什么</h2>
+<h2 id="what">1. What it is</h2>
 <div class="card">
-<p><b>serumsource</b> 是一个 R 语言工具包，帮你回答一个问题：</p>
+<p><b>serumsource</b> is an R package that answers one question:</p>
 <div class="plain" style="font-size:1.1rem;text-align:center;font-weight:600">
-“这个细胞外囊泡（EV）蛋白，到底是血清带进来的，还是 EV 本身的？”
+"Is this extracellular-vesicle (EV) protein actually carried by serum, or is it just EV background?"
 </div>
-<p>它基于 SILAC 重/轻同位素标记数据，自动算出每个蛋白的“血清来源分数”。</p>
-<p style="margin-top:.6rem;color:var(--muted)">你不需要懂算法，只要会复制粘贴就行。</p>
+<p>It uses SILAC Heavy/Light isotope data to automatically compute a "serum-source score" for every protein.</p>
+<p style="margin-top:.6rem;color:var(--muted)">You don't need to understand the algorithm &mdash; just copy and paste.</p>
 </div>
 
-<h2 id="prepare">2. 准备数据</h2>
+<h2 id="prepare">2. Prepare your data</h2>
 <div class="card">
-<h3>你需要一个 Excel 文件（.xlsx）</h3>
-<p>来自 MaxQuant 的注释表，里面要有这些列：</p>
+<h3>You need one Excel file (.xlsx)</h3>
+<p>A MaxQuant annotated table that contains these columns:</p>
 <table>
-<tr><th>列类型</th><th>列名长什么样</th><th>是什么</th></tr>
-<tr><td>Light 强度</td><td><code>Intensity L UCEV_1</code></td><td>轻通道蛋白强度</td></tr>
-<tr><td>Heavy 强度</td><td><code>Intensity H UCEV_1</code></td><td>重通道蛋白强度</td></tr>
-<tr><td>肽段数</td><td><code>Unique peptides UCEV_1</code></td><td>鉴定到的唯一肽段数</td></tr>
-<tr><td>注释列</td><td><code>Protein IDs</code>、<code>Gene names</code> 等</td><td>蛋白身份信息</td></tr>
+<tr><th>Column type</th><th>Example column name</th><th>What it is</th></tr>
+<tr><td>Light intensity</td><td><code>Intensity L UCEV_1</code></td><td>Light-channel protein intensity</td></tr>
+<tr><td>Heavy intensity</td><td><code>Intensity H UCEV_1</code></td><td>Heavy-channel protein intensity</td></tr>
+<tr><td>Peptide count</td><td><code>Unique peptides UCEV_1</code></td><td>Number of unique peptides identified</td></tr>
+<tr><td>Annotation</td><td><code>Protein IDs</code>, <code>Gene names</code>, etc.</td><td>Protein identity information</td></tr>
 </table>
-<div class="plain"><b>记住两个路径：</b><br>
-① Excel 文件在哪（比如 <code>F:/data/my_MaxQuant.xlsx</code>）<br>
-② 结果想存到哪个文件夹（比如 <code>F:/data/results</code>）</div>
+<div class="plain"><b>Remember two paths:</b><br>
+&rarr; Where your Excel file lives (e.g. <code>F:/data/my_MaxQuant.xlsx</code>)<br>
+&rarr; Where you want results saved (e.g. <code>F:/data/results</code>)</div>
 </div>
 
-<h2 id="three-steps">3. 三步搞定</h2>
+<h2 id="three-steps">3. Three steps</h2>
 
 <div class="step">
 <div class="step-num">1</div>
 <div class="step-body">
-<h3>安装工具包（只做一次）</h3>
-<p>打开 R 或 RStudio，在控制台粘贴：</p>
-<button class="copy-btn" onclick="copyCode(this)">复制</button>
+<h3>Install the package (once only)</h3>
+<p>Open R or RStudio and paste into the console:</p>
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
 <pre><code>install.packages("remotes")
 remotes::install_github("xuelixu90/SILAC-SAPC")</code></pre>
-<div class="plain">等它跑完，没有红色 ERROR 就成功了。</div>
+<div class="plain">Wait for it to finish. No red <code>ERROR</code> means success.</div>
 </div>
 </div>
 
 <div class="step">
 <div class="step-num">2</div>
 <div class="step-body">
-<h3>运行核心分析（一行代码）</h3>
-<p>把下面代码里的路径改成你自己的：</p>
-<button class="copy-btn" onclick="copyCode(this)">复制</button>
+<h3>Run the core analysis (one line)</h3>
+<p>Change the path below to your own Excel file:</p>
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
 <pre><code>library(serumsource)
 
-# ===== 只改这一行：换成你的 Excel 文件路径 =====
+# ===== Change this line: your Excel file path =====
 my_excel <- "F:/data/my_MaxQuant.xlsx"
 
-# 运行分析
+# Run the analysis
 core <- run_core_analysis(input_file = my_excel)</code></pre>
-<div class="plain">控制台会打印进度，比如 <code>Processing: DGEV_PC_1-3_vs_UCEV</code>。<br>
-跑完后，结果都存在 <code>core</code> 这个变量里。</div>
+<div class="plain">The console prints progress, e.g. <code>Processing: DGEV_PC_1-3_vs_UCEV</code>.<br>
+When it finishes, all results are stored in the variable <code>core</code>.</div>
 </div>
 </div>
 
 <div class="step">
 <div class="step-num">3</div>
 <div class="step-body">
-<h3>导出结果（图表 + 表格）</h3>
-<p>把下面代码里的路径改成你想存结果的文件夹：</p>
-<button class="copy-btn" onclick="copyCode(this)">复制</button>
-<pre><code># 加载绘图和导出功能
+<h3>Export results (plots + tables)</h3>
+<p>Change the path to the folder where you want results saved:</p>
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
+<pre><code># Load plotting and export functions
 source("downstream/downstream_analysis.R")
 
-# ===== 只改这一行：换成你想存结果的文件夹 =====
+# ===== Change this line: your output folder =====
 my_output <- "F:/data/results"
 
 run_downstream_analysis(
@@ -131,91 +131,91 @@ run_downstream_analysis(
   input_file  = my_excel,
   output_dir  = my_output
 )</code></pre>
-<div class="plain">跑完后打开 <code>F:/data/results</code> 文件夹，所有结果都在里面。</div>
+<div class="plain">Open the <code>F:/data/results</code> folder &mdash; everything is there.</div>
 </div>
 </div>
 
-<h2 id="results">4. 结果长什么样</h2>
+<h2 id="results">4. What you get</h2>
 <div class="card">
-<p>输出文件夹里主要有这些：</p>
+<p>The output folder contains:</p>
 <div class="tree">results/
-├── <b>Analysis_Report.md</b>           ← 先看这个！完整文字报告
-├── <b>plots/</b>                       ← 7 张关键图表（PNG）
+├── <b>Analysis_Report.md</b>           &larr; Start here! Full text report
+├── <b>plots/</b>                       &larr; 7 key figures (PNG)
 │   ├── classification_summary.png
 │   ├── excess_distribution.png
 │   ├── serum_fraction.png
 │   └── ...
-├── 00_Classification_Summary_by_Group.csv    ← 每个组分类了多少蛋白
-├── 00_All_Comparisons_Merged_Results.csv     ← 每个蛋白的详细结果
-├── 00_All_Comparisons_Primary_Serum_Derived_Merged.csv  ← 血清来源蛋白
-└── Serum_Source_Analysis_All_Groups_Summary.xlsx  ← Excel 汇总表</div>
+├── 00_Classification_Summary_by_Group.csv    &larr; how many proteins per group
+├── 00_All_Comparisons_Merged_Results.csv     &larr; per-protein detailed results
+├── 00_All_Comparisons_Primary_Serum_Derived_Merged.csv  &larr; serum-derived proteins
+└── Serum_Source_Analysis_All_Groups_Summary.xlsx  &larr; summary workbook</div>
 
-<h3>最关键的几个结果</h3>
+<h3>Most important outputs</h3>
 <table>
-<tr><th>文件</th><th>你能看到什么</th></tr>
-<tr><td><code>00_Classification_Summary_by_Group.csv</code></td><td>每个实验组里，有多少蛋白被判为“血清来源”</td></tr>
-<tr><td><code>00_All_Comparisons_Primary_Serum_Derived_Merged.csv</code></td><td>所有判定为血清来源的蛋白清单（带基因名、数据库证据）</td></tr>
-<tr><td><code>plots/serum_fraction.png</code></td><td>每个蛋白的“血清分数”（0~1，越接近 1 越可能是血清来源）</td></tr>
-<tr><td><code>plots/excess_heatmap.png</code></td><td>热图：哪些蛋白在哪些组里偏离背景</td></tr>
+<tr><th>File</th><th>What you see</th></tr>
+<tr><td><code>00_Classification_Summary_by_Group.csv</code></td><td>How many proteins are classified as "serum-derived" in each experimental group</td></tr>
+<tr><td><code>00_All_Comparisons_Primary_Serum_Derived_Merged.csv</code></td><td>List of all serum-derived proteins (with gene names and database evidence)</td></tr>
+<tr><td><code>plots/serum_fraction.png</code></td><td>"Serum fraction" per protein (0&ndash;1; closer to 1 = more likely serum-derived)</td></tr>
+<tr><td><code>plots/excess_heatmap.png</code></td><td>Heatmap: which proteins deviate from background in which groups</td></tr>
 </table>
 
-<div class="plain"><b>怎么看分类标签：</b><br>
-<span class="badge" style="background:var(--green)">高置信</span>
-<code>Source-corrected, high confidence</code> — 强证据，血清来源<br>
-<span class="badge" style="background:#2c7be5">中置信</span>
-<code>Source-corrected, medium confidence</code> — 中等证据<br>
+<div class="plain"><b>How to read classification labels:</b><br>
+<span class="badge" style="background:var(--green)">High</span>
+<code>Source-corrected, high confidence</code> &mdash; strong evidence, serum-derived<br>
+<span class="badge" style="background:#2c7be5">Medium</span>
+<code>Source-corrected, medium confidence</code> &mdash; moderate evidence<br>
 <span class="badge" style="background:#6f42c1">L1</span>
-<code>Acquired-only (Level 1)</code> — 对照组无信号但目标组有<br>
-<span class="badge" style="background:var(--muted)">背景</span>
-<code>Likely_residual</code> / <code>Ambiguous</code> — 不像血清来源</div>
+<code>Acquired-only (Level 1)</code> &mdash; no signal in control but present in target<br>
+<span class="badge" style="background:var(--muted)">Bg</span>
+<code>Likely_residual</code> / <code>Ambiguous</code> &mdash; not serum-derived</div>
 </div>
 
-<h2 id="change">5. 换自己的数据怎么改</h2>
+<h2 id="change">5. Adapting to your own data</h2>
 <div class="card">
-<p>如果你的 Excel 列名和默认的不一样，告诉工具包你的列名：</p>
-<button class="copy-btn" onclick="copyCode(this)">复制</button>
+<p>If your Excel column names differ from the defaults, tell the package what they are:</p>
+<button class="copy-btn" onclick="copyCode(this)">Copy</button>
 <pre><code>core <- run_core_analysis(
   input_file = "F:/data/my_MaxQuant.xlsx",
   annotation_cols = c(
-    protein_ids = "Protein IDs",       # 你的蛋白ID列名
-    gene_names  = "Gene names",        # 你的基因名列名
-    protein_names = "Protein names",   # 你的蛋白名列名
-    in_house_db = "In_house_db",       # 你的数据库列名
+    protein_ids = "Protein IDs",       # your protein ID column
+    gene_names  = "Gene names",        # your gene name column
+    protein_names = "Protein names",   # your protein name column
+    in_house_db = "In_house_db",       # your database column
     plasma_atlas_db = "Plasma_Altas_db"
   )
 )</code></pre>
-<div class="warn"><b>注意：</b>如果你的实验组名不是默认的（UCEV / DGEV_PC_1-3 等），需要自己建一个映射表。建议找懂代码的人帮忙，或者先用默认数据跑通再改。</div>
+<div class="warn"><b>Note:</b> If your experimental group names are not the defaults (UCEV / DGEV_PC_1-3, etc.), you need to build your own sample-mapping table. Ask someone familiar with R for help, or first run the default data to make sure everything works.</div>
 </div>
 
-<h2 id="faq">6. 常见问题</h2>
+<h2 id="faq">6. FAQ</h2>
 <div class="card">
-<h3>❓ 报错说“找不到列”</h3>
-<p>你的 Excel 列名和默认的不一致。看上面第 5 节，用 <code>annotation_cols</code> 指定你的列名。</p>
+<h3>&#10067; Error: "column not found"</h3>
+<p>Your Excel column names don't match the defaults. See Section 5 above and use <code>annotation_cols</code> to specify your column names.</p>
 
-<h3>❓ 报错说“No target groups found”</h3>
-<p>你的数据里没有默认的对照组名 “UCEV”。用 <code>reference_group</code> 参数指定你的对照组名：</p>
-<pre><code>run_core_analysis(input_file = "your.xlsx", reference_group = "你的对照组名")</code></pre>
+<h3>&#10067; Error: "No target groups found"</h3>
+<p>Your data doesn't contain the default control group name "UCEV". Use the <code>reference_group</code> argument to set your control group name:</p>
+<pre><code>run_core_analysis(input_file = "your.xlsx", reference_group = "your_control_name")</code></pre>
 
-<h3>❓ 结果文件夹是空的</h3>
-<p>检查 <code>output_dir</code> 路径是否正确，文件夹是否有写入权限。</p>
+<h3>&#10067; The output folder is empty</h3>
+<p>Check that the <code>output_dir</code> path is correct and the folder is writable.</p>
 
-<h3>❓ 怎么只分析某几个组？</h3>
-<p>用 <code>target_groups</code> 参数：</p>
+<h3>&#10067; How to analyse only some groups?</h3>
+<p>Use the <code>target_groups</code> argument:</p>
 <pre><code>run_core_analysis(input_file = "your.xlsx",
-                  target_groups = c("组A", "组B"))</code></pre>
+                  target_groups = c("GroupA", "GroupB"))</code></pre>
 
-<h3>❓ 怎么让结果更严格/更宽松？</h3>
-<p>调整阈值参数：</p>
+<h3>&#10067; How to make the analysis stricter / more lenient?</h3>
+<p>Adjust the threshold parameters:</p>
 <pre><code>p <- serum_source_params(
-  min_absolute_light_excess = 0.10,  # 更大=更严格
-  background_multiplier_high = 4     # 更大=更严格
+  min_absolute_light_excess = 0.10,  # larger = stricter
+  background_multiplier_high = 4     # larger = stricter
 )
 run_core_analysis(input_file = "your.xlsx", params = p)</code></pre>
 </div>
 
 <hr style="margin:2rem 0;border:none;border-top:1px solid var(--border)">
 <p style="text-align:center;color:var(--muted);font-size:.85rem">
-serumsource R package · <a href="index.html" style="color:var(--accent)">查看完整分析报告</a> ·
+serumsource R package &middot; <a href="index.html" style="color:var(--accent)">Full analysis report</a> &middot;
 <a href="https://github.com/xuelixu90/SILAC-SAPC" style="color:var(--accent)">GitHub</a>
 </p>
 
@@ -225,7 +225,7 @@ function copyCode(btn){
   const text = pre.innerText;
   navigator.clipboard.writeText(text).then(()=>{
     const old = btn.innerText;
-    btn.innerText = '已复制 ✓';
+    btn.innerText = 'Copied &#10003;';
     setTimeout(()=>{btn.innerText = old}, 1500);
   }).catch(()=>{
     const range = document.createRange();
@@ -234,7 +234,7 @@ function copyCode(btn){
     window.getSelection().addRange(range);
     document.execCommand('copy');
     const old = btn.innerText;
-    btn.innerText = '已复制 ✓';
+    btn.innerText = 'Copied &#10003;';
     setTimeout(()=>{btn.innerText = old}, 1500);
   });
 }
