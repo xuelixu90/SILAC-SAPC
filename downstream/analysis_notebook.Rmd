@@ -1,0 +1,302 @@
+---
+title: "Heavy/Light Isotope-Based Serum Source Analysis — Execution Notebook"
+author: "serumsource package + downstream script"
+date: "`r Sys.Date()`"
+params:
+  INPUT_FILE:  ~
+  OUTPUT_DIR:  ~
+  PARAMS:      ~
+  SAMPLE_INFO: ~
+  LIB_DIR:     ~
+output:
+  html_notebook:
+    toc: true
+    toc_float: true
+    number_sections: true
+    theme: cosmo
+    code_folding: show
+    fig_width: 9
+    fig_height: 5
+  html_document:
+    toc: true
+    toc_float: true
+    number_sections: true
+    theme: cosmo
+    code_folding: show
+    self_contained: true
+    fig_width: 9
+    fig_height: 5
+  md_document:
+    toc: true
+    variant: gfm
+    fig_width: 9
+    fig_height: 5
+    preserve_yaml: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(
+  echo        = TRUE,
+  warning     = TRUE,
+  message     = TRUE,
+  error       = FALSE,
+  comment     = "",
+  cache       = FALSE,
+  fig.align   = "center"
+)
+```
+
+# Setup
+
+This notebook walks through the full Heavy/Light serum-source analysis
+step by step, so you can see (and re-run) every calculation. The **core
+computation** comes from the `serumsource` R package; plotting, output
+saving, report writing and notebook rendering come from the downstream
+script (`downstream/downstream_analysis.R`).
+
+```{r load-pkg, message=TRUE}
+.libPaths(c(params$LIB_DIR, .libPaths()))
+suppressPackageStartupMessages({
+  library(serumsource)
+  library(ggplot2)
+  library(dplyr)
+})
+cat("serumsource version :", as.character(packageVersion("serumsource")), "\n")
+cat("Output directory    :", params$OUTPUT_DIR, "\n")
+cat("Input workbook      :", basename(params$INPUT_FILE), "\n")
+```
+
+---
+
+# Parameters
+
+The user-visible parameter object from `serumsource::serum_source_params()`
+and the sample-to-column mapping used for this run.
+
+```{r params}
+input_file  <- params$INPUT_FILE
+output_dir  <- params$OUTPUT_DIR
+params_obj  <- if (inherits(params$PARAMS, "serum_source_params")) {
+  params$PARAMS
+} else {
+  do.call(serum_source_params, params$PARAMS)
+}
+sample_info <- if (is.null(params$SAMPLE_INFO)) build_sample_info() else params$SAMPLE_INFO
+
+print(params_obj)
+cat("\nGroups to analyse:", paste(unique(sample_info$group), collapse = ", "), "\n")
+```
+
+## Sample ↔ MaxQuant column mapping
+
+```{r sample-map}
+knitr::kable(
+  as.data.frame(sample_info)[, c("sample_id", "group",
+                                 "light_column", "heavy_column",
+                                 "peptide_column")],
+  row.names = FALSE,
+  caption = "Sample mapping (en-dash MaxQuant column names)"
+)
+```
+
+---
+
+# Step 1 — Core computation
+
+One function call runs the whole computation: reading, preparation,
+background estimation, classification and source correction. No files are
+written yet -- that happens in the downstream steps.
+
+```{r step1-run, fig.show='hide', results='hold'}
+start_time <- Sys.time()
+core <- run_core_analysis(
+  input_file      = input_file,
+  sample_info     = sample_info,
+  params          = params_obj
+)
+elapsed <- round(difftime(Sys.time(), start_time, units = "secs"), 1)
+cat("Core computation finished in", as.numeric(elapsed), "seconds.\n")
+```
+
+---
+
+# Step 2 — Input & preparation
+
+A quick look at what went in: how many proteins, how many
+protein-replicate rows, and where the background noise floor landed.
+
+```{r step2-shapes}
+cat("Annotated proteins (rows)           :",
+    formatC(nrow(core$annotation), format = "d", big.mark = ","), "\n")
+cat("Per-protein / per-replicate rows    :",
+    formatC(nrow(core$lh_long), format = "d", big.mark = ","), "\n")
+cat("UCEV proteins (SD estimate base)    :",
+    formatC(length(unique(core$ucev_sd$Protein_Row_ID)),
+            format = "d", big.mark = ","), "\n")
+cat("Global Light-fraction SD floor      :",
+    signif(core$global_fraction_sd_floor, 4), "\n")
+```
+
+## First 6 proteins × first 8 annotation columns
+
+```{r step2-head}
+knitr::kable(
+  utils::head(as.data.frame(core$annotation), 6)[, seq_len(min(8, ncol(core$annotation)))],
+  row.names = FALSE,
+  caption = "Head of protein annotation table"
+)
+```
+
+## Head of per-replicate Heavy/Light table
+
+```{r step2-head-long}
+knitr::kable(
+  utils::head(as.data.frame(core$lh_long), 8),
+  row.names = FALSE,
+  caption = "Head of the long-format Heavy/Light table"
+)
+```
+
+---
+
+# Step 3 — Classification summary
+
+How many proteins fell into each classification bucket, per comparison
+group (wide format: one column per bucket).
+
+```{r step3-summary-wide}
+cs <- as.data.frame(core$case_summary)
+cs$protein_count <- as.integer(cs$protein_count)
+wide <- reshape(
+  cs[, c("comparison", "classification", "protein_count")],
+  idvar     = "comparison",
+  timevar   = "classification",
+  direction = "wide"
+)
+names(wide) <- sub("^protein_count\\.", "", names(wide))
+wide <- wide[order(wide$comparison), ]
+for (cc in setdiff(names(wide), "comparison")) {
+  wide[[cc]][is.na(wide[[cc]])] <- 0L
+}
+knitr::kable(wide, row.names = FALSE,
+             caption = "Classification counts per comparison (wide)")
+```
+
+## Primary serum-derived protein counts
+
+```{r step3-primary}
+prim_count <- core$primary_serum %>%
+  count(comparison, name = "Primary_serum_proteins")
+knitr::kable(as.data.frame(prim_count), row.names = FALSE)
+```
+
+## Case breakdown by comparison and assigned case
+
+```{r step3-case-long}
+knitr::kable(as.data.frame(core$case_summary),
+             row.names = FALSE,
+             caption = "Full case × classification breakdown")
+```
+
+---
+
+# Step 4 — Visualisations
+
+The downstream script provides the plotting functions. We source it here
+and redraw every figure so you can inspect them directly in the notebook.
+PNG copies of all these plots also live under `plots/` inside the output
+directory.
+
+```{r step4-source-downstream, message=TRUE}
+# Locate the downstream script relative to this notebook
+.ds_candidates <- c(
+  file.path(dirname(knitr::current_input(dir = TRUE)), "downstream_analysis.R"),
+  file.path(params$OUTPUT_DIR, "downstream_analysis.R"),
+  file.path(getwd(), "downstream", "downstream_analysis.R")
+)
+.ds <- .ds_candidates[file.exists(.ds_candidates)][1]
+if (is.na(.ds)) stop("Cannot find downstream_analysis.R")
+source(.ds)
+```
+
+```{r step4-classification, fig.height=5.2}
+plot_classification_summary(core$case_summary)
+```
+
+```{r step4-excess-dist, fig.height=6}
+plot_excess_distribution(core$results)
+```
+
+```{r step4-excess-vs-prob, fig.height=5.8}
+plot_excess_vs_probability(core$results)
+```
+
+```{r step4-serum-frac, fig.height=5.2}
+plot_serum_fraction(core$primary_serum)
+```
+
+```{r step4-database, fig.height=5.0}
+plot_database_evidence(core$primary_serum)
+```
+
+```{r step4-ucev-bg, fig.height=4.8}
+plot_ucev_background(core$ucev_sd, core$global_fraction_sd_floor)
+```
+
+```{r step4-heatmap, fig.height=10}
+plot_excess_heatmap(core$results)
+```
+
+---
+
+# Step 5 — Database evidence for primary serum proteins
+
+Do the primary serum candidates have support from the in-house serum
+database or PeptideAtlas? Counts per comparison group.
+
+```{r step5-db}
+knitr::kable(
+  as.data.frame(core$database_summary),
+  row.names = FALSE,
+  caption = "Protein counts split by comparison × classification × database evidence"
+)
+```
+
+---
+
+# Step 6 — Top 10 serum candidates per group
+
+The strongest candidates per group, ranked by Light-fraction excess, with
+gene names, serum fractions and database evidence.
+
+```{r step6-top10}
+top10 <- core$primary_serum %>%
+  group_by(comparison) %>%
+  arrange(desc(Light_fraction_excess), .by_group = TRUE) %>%
+  slice_head(n = 10) %>%
+  ungroup() %>%
+  transmute(
+    Group           = comparison,
+    Gene            = Gene_names,
+    Protein         = substr(Protein_IDs, 1, 40),
+    Classification  = classification,
+    `Light excess`  = round(Light_fraction_excess, 3),
+    `Serum fraction`= round(estimated_serum_fraction, 3),
+    `CV (serum fr.)`= round(serum_fraction_CV, 3),
+    `Database`      = Database_evidence
+  )
+knitr::kable(as.data.frame(top10), row.names = FALSE,
+             caption = "Top 10 serum-derived candidates per comparison group, ranked by Light-fraction excess")
+```
+
+---
+
+# R session information
+
+For reproducibility — R version, attached packages, OS details.
+
+```{r session-info}
+utils::sessionInfo()
+```
+
+Total wall-clock time for this notebook run: **`r as.numeric(elapsed)` seconds**.

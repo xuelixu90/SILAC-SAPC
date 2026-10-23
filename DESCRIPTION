@@ -1,0 +1,30 @@
+Package: serumsource
+Type: Package
+Title: Heavy/Light Isotope-Based Serum Source Analysis of EV Proteomics
+Version: 0.1.0
+Authors@R: person(given = "Xueli", family = "Xu", email = "xuelixu90@gmail.com", role = c("aut", "cre"))
+Description: Classifies proteins from SILAC-style heavy/light labeled
+    extracellular-vesicle (EV) proteomics data as serum-derived versus
+    residual/background. Compares target EV groups against a UCEV control
+    using replicate-level Light-fraction statistics, applies
+    source-correction to estimate serum fractions, and annotates candidates
+    against in-house serum and PeptideAtlas databases. This package provides
+    the core computation only; plotting, output saving, report generation
+    and notebook rendering are supplied as a separate downstream R script.
+License: GPL-3
+Encoding: UTF-8
+Imports:
+    readxl,
+    dplyr,
+    magrittr,
+    purrr,
+    tibble,
+    stats
+Suggests:
+    testthat (>= 3.0.0),
+    writexl,
+    knitr,
+    rmarkdown
+VignetteBuilder: knitr
+Config/testthat/edition: 3
+RoxygenNote: 7.3.2

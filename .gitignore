@@ -1,0 +1,15 @@
+# --- R history / workspace ---
+.Rhistory
+.RData
+.Rproj.user/
+
+# --- R package build artifacts ---
+*.tar.gz
+*.zip
+
+# --- OS junk ---
+.DS_Store
+Thumbs.db
+
+# --- IDE / AI tool state ---
+.workbuddy/

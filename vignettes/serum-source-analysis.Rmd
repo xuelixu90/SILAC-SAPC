@@ -1,0 +1,137 @@
+---
+title: "serumsource: Heavy/Light Isotope-Based Serum Source Analysis"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{serumsource: Heavy/Light Isotope-Based Serum Source Analysis}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+```{r setup, message = FALSE}
+library(serumsource)
+library(dplyr)
+```
+
+# 1. What does this package do?
+
+`serumsource` looks at SILAC Heavy/Light dual-channel labelled EV
+proteomics data and asks, for every protein: **does it really come from
+serum?**
+
+The idea is simple. Serum proteins are enriched in the Light channel, so
+we compare each target group's **Light fraction** (Light / (Light+Heavy))
+against the control group UCEV, whose variation defines the background
+noise floor:
+
+- **Paired-channel mode** (Case 1/2): both control and target have usable
+  Heavy/Light pairs. A protein is called serum-derived only when its Light
+  fraction clearly exceeds the background (Source-corrected, high/medium
+  confidence, single-peptide candidates).
+- **Control-absent mode** (Case 3/4): the control has no signal at all but
+  the target shows a Light-dominant one (Acquired-only, Level 1/2).
+- **p0 source correction** then turns the excess into an estimated serum
+  fraction (0-1) per protein.
+
+The package does the **computation only**. Plots, CSV/XLSX output, the
+Markdown report and the notebook are provided by a separate downstream
+script (`downstream/downstream_analysis.R`).
+
+# 2. One-call core analysis (real data)
+
+```{r real-data, eval = FALSE}
+core <- run_core_analysis(
+  input_file = "path/to/MaxQuant_annotated_with_total.xlsx"
+)
+# core$results        : per-protein classification (all comparisons)
+# core$all_merged     : results with calibrated Serum_L columns
+# core$primary_serum  : primary serum-derived proteins
+# core$case_summary   : classification counts per group
+```
+
+# 3. Step-by-step pipeline (mini demo)
+
+To see the machinery in action we build a tiny synthetic dataset: 3
+proteins x 2 groups (CTR control, TGT target) x 2 replicates, with the
+same column layout as a MaxQuant annotation table.
+
+```{r mini-data}
+mini <- tibble::tibble(
+  `Protein IDs` = c("P_ALB", "P_RES", "P_ACQ"),
+  `Representive ID` = c("P_ALB", "P_RES", "P_ACQ"),
+  `Protein names` = c("Albumin", "Residual", "Acquired"),
+  `Gene names` = c("ALB", "RES", "ACQ"),
+  In_house_db = c("in_house_serum", NA, NA),
+  Plasma_Altas_db = c("PA001", NA, "PA003"),
+  "Intensity L C1" = c(1000, 1000, NA), "Intensity H C1" = c(500, 500, NA),
+  "Intensity L C2" = c(1100, 950, NA), "Intensity H C2" = c(550, 480, NA),
+  "Intensity L T1" = c(2000, 1000, 1500), "Intensity H T1" = c(400, 480, NA),
+  "Intensity L T2" = c(2100, 980, 1400), "Intensity H T2" = c(420, 500, NA),
+  "Unique peptides C1" = c(5, 5, NA), "Unique peptides C2" = c(5, 5, NA),
+  "Unique peptides T1" = c(5, 5, 3), "Unique peptides T2" = c(5, 5, 3)
+)
+
+si <- tibble::tibble(
+  sample_id = c("C1", "C2", "T1", "T2"),
+  group = c("CTR", "CTR", "TGT", "TGT"),
+  light_column = paste("Intensity L", sample_id),
+  heavy_column = paste("Intensity H", sample_id),
+  peptide_column = paste("Unique peptides", sample_id)
+)
+```
+
+The three demo proteins each tell a different story:
+
+- `P_ALB`: much more Light in the target than the control can explain ->
+  true serum protein;
+- `P_RES`: Light fraction indistinguishable from the control -> residual;
+- `P_ACQ`: no control signal at all, strong Light-dominant target signal ->
+  acquired by the EVs.
+
+Now run the pipeline: assemble the long table, estimate the background,
+classify the target group:
+
+```{r pipeline}
+prep <- prepare_long_data(mini, si)
+bg   <- compute_ucev_background(prep$lh_long, "CTR")
+res  <- analyze_one_group(prep$lh_long, prep$annotation, "CTR", "TGT",
+                          global_fraction_sd_floor = bg$global_fraction_sd_floor)
+
+res %>%
+  dplyr::select(Protein_Row_ID, assigned_case, classification,
+                UCEV_heavy_labeling_p0, Light_fraction_excess,
+                estimated_serum_fraction)
+```
+
+As expected, the three proteins are classified as:
+
+- `P_ALB`: **Source-corrected, high confidence** (excess well above background)
+- `P_RES`: Ambiguous / Likely_residual (no excess over background)
+- `P_ACQ`: **Acquired-only (Level 1)** (control absent, Light-dominant target)
+
+Finally, `calibrate_serum_light()` converts the excess back into intensity
+units, giving per-replicate serum Light intensities:
+
+```{r calibration}
+full <- calibrate_serum_light(res, prep$data_converted, si, "TGT", "CTR")
+full[, c("Protein_Row_ID", "Serum_L_Calibrated T1", "Serum_L_Calibrated T2")]
+```
+
+# 4. Exported core functions
+
+| Function | What it does |
+|---|---|
+| `read_input_data()` | Read the annotated MaxQuant Excel workbook |
+| `build_sample_info()` | Default sample-to-column mapping for the NP_1 dataset |
+| `prepare_long_data()` | Build the long-format Heavy/Light table + annotation |
+| `compute_ucev_background()` | Estimate the background noise floor from UCEV |
+| `analyze_one_group()` | Classify one target group against one control |
+| `calibrate_serum_light()` | Convert excess into calibrated serum Light intensity |
+| `run_core_analysis()` | Run the whole computation in one call (no I/O) |
+| `serum_source_params()` | All threshold parameters in one object |
