@@ -336,9 +336,11 @@ to `target_groups`.
 A complete HTML analysis report (TOC, code, tables and all figures) generated
 with the NP_1 dataset is available in `docs/index.html`.
 
-> **View it online**: once GitHub Pages is enabled (Settings → Pages →
-> Source: `Deploy from a branch` → Branch: `main` / `/docs`), open
-> <https://xuelixu90.github.io/SILAC-SAPC/>.
+> **View it online**: <https://xuelixu90.github.io/SILAC-SAPC/>
+
+> **New to coding?** Read the
+> [plain-language usage guide](https://xuelixu90.github.io/SILAC-SAPC/usage.html)
+> — copy-paste code, change two paths, done.
 
 The report reproduces the full Heavy/Light serum-source workflow: 5,298
 proteins across 4 target groups vs the UCEV control, producing a
