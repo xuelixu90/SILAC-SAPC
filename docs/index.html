@@ -1,4 +1,4 @@
-﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
+﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿﻿<!DOCTYPE html>
 
 <html>
 
@@ -1611,12 +1611,12 @@ two lines</h1>
 <pre class="r"><code>library(serumsource)
 
 # 1. Core computation (no I/O) -- one call
-core &lt;- run_core_analysis(input_file = &quot;F:/WYF/NP_1/MaxQuant_annotated_with_total.xlsx&quot;)
+core &lt;- run_core_analysis(input_file = &quot;F:/data/MaxQuant_annotated_with_total.xlsx&quot;)
 
 # 2. Downstream: plots + CSV/XLSX + Markdown report -- one call
 source(&quot;downstream/downstream_analysis.R&quot;)
 run_downstream_analysis(core_result = core,
-                        input_file  = &quot;F:/WYF/NP_1/MaxQuant_annotated_with_total.xlsx&quot;,
+                        input_file  = &quot;F:/data/MaxQuant_annotated_with_total.xlsx&quot;,
                         output_dir  = &quot;output&quot;)</code></pre>
 <p>Everything below is the result of these two lines.</p>
 </div>
@@ -1628,13 +1628,13 @@ make them explicit for clarity:</p>
 suppressPackageStartupMessages(library(dplyr))
 library(knitr)
 
-input_file      &lt;- &quot;F:/WYF/NP_1/MaxQuant_annotated_with_total.xlsx&quot;
+input_file      &lt;- &quot;F:/data/MaxQuant_annotated_with_total.xlsx&quot;
 sheet_name      &lt;- 1
 sample_info     &lt;- build_sample_info()
 reference_group &lt;- &quot;UCEV&quot;
 target_groups   &lt;- NULL          # auto = all groups except UCEV
 params          &lt;- serum_source_params()
-output_dir      &lt;- &quot;F:/WYF/NP_1/提交/full_analysis_report/output&quot;
+output_dir      &lt;- &quot;F:/data/full_analysis_report/output&quot;
 dir.create(output_dir, showWarnings = FALSE, recursive = TRUE)
 
 # Thresholds (defaults)
@@ -1756,7 +1756,7 @@ cat(&quot;Proteins:        &quot;, nrow(core$annotation), &quot;\n&quot;)</code>
 </tbody>
 </table>
 <p>Now load the downstream script for plotting helpers (used below):</p>
-<pre class="r"><code>source(&quot;F:/WYF/NP_1/提交/SerumSourceAnalyzer/downstream/downstream_analysis.R&quot;)</code></pre>
+<pre class="r"><code>source(&quot;downstream/downstream_analysis.R&quot;)</code></pre>
 </div>
 <div id="sample-metadata" class="section level1" number="5">
 <h1><span class="header-section-number">5</span> Sample Metadata</h1>
