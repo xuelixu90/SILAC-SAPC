@@ -117,9 +117,25 @@ core <- run_core_analysis(
   params          = serum_source_params()    # thresholds; see Section 7 to customise
 )
 
-# New dataset with different groups or column names? Override what differs, e.g.:
-#   run_core_analysis(input_file, sample_info = my_mapping,
-#                     reference_group = "CTRL", target_groups = c("A", "B"))
+# New dataset with different groups or column names? Two easy ways:
+#
+# (a) Standard MaxQuant naming ("<prefix> <sample>"): just list your samples
+#     and groups - column names are built automatically:
+#   my_mapping <- build_sample_info(
+#     sample_names = c("WT_rep1", "WT_rep2", "WT_rep3",
+#                      "KO_rep1", "KO_rep2", "KO_rep3"),
+#     groups       = rep(c("WT", "KO"), each = 3))
+#
+# (b) Completely different column names: build the mapping tibble by hand:
+#   my_mapping <- tibble::tibble(
+#     sample_id      = c("s1", "s2", "s3"),
+#     group          = c("CTRL", "TGT", "TGT"),
+#     light_column   = c("L_s1", "L_s2", "L_s3"),
+#     heavy_column   = c("H_s1", "H_s2", "H_s3"),
+#     peptide_column = c("P_s1", "P_s2", "P_s3"))
+#
+#   then: run_core_analysis(input_file, sample_info = my_mapping,
+#                           reference_group = "CTRL", target_groups = "TGT")
 
 # core$results        : per-protein classification (all comparisons)
 # core$all_merged     : results with calibrated Serum_L columns
@@ -134,7 +150,7 @@ print(core$case_summary, n = 100)
 |---|---|---|
 | `input_file` | (required) | - |
 | `sheet_name` | `1` | Your data is not on the first sheet |
-| `sample_info` | `build_sample_info()` | Different samples/groups than NP_1 |
+| `sample_info` | `build_sample_info()` | Different samples/groups than NP_1 (see example above) |
 | `reference_group` | `"UCEV"` | A different control group name |
 | `target_groups` | `NULL` (auto) | Analyse only a subset of groups |
 | `params` | `serum_source_params()` | Loosen/tighten thresholds (Section 7) |

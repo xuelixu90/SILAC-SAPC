@@ -110,6 +110,33 @@ test_that("optional annotation columns can be omitted", {
                     "Not annotated in either database"))
 })
 
+test_that("build_sample_info defaults stay unchanged and custom datasets work", {
+  si <- build_sample_info()
+  expect_equal(nrow(si), 15)
+  expect_equal(si$light_column, paste("Intensity L", si$sample_id))
+  expect_equal(si$heavy_column, paste("Intensity H", si$sample_id))
+  expect_equal(si$peptide_column, paste("Unique peptides", si$sample_id))
+  # en dash preserved in default names
+  expect_true("Intensity H DGEV\u2013PC_1-3_1" %in% si$heavy_column)
+  expect_true("Intensity H UCEV\u2013PC_3" %in% si$heavy_column)
+
+  si2 <- build_sample_info(
+    sample_names = c("WT_1", "WT_2", "WT_3", "KO_1", "KO_2", "KO_3"),
+    groups = rep(c("WT", "KO"), each = 3)
+  )
+  expect_equal(si2$group, rep(c("WT", "KO"), each = 3))
+  expect_equal(si2$heavy_column[1], "Intensity H WT_1")
+
+  expect_error(
+    build_sample_info(sample_names = c("A", "B")),
+    "together"
+  )
+  expect_error(
+    build_sample_info(sample_names = c("A", "B", "C"), groups = c("X", "Y")),
+    "same length"
+  )
+})
+
 test_that("compute_ucev_background returns floor", {
   prep <- prepare_long_data(make_mini_data(), make_mini_sample_info())
   bg <- compute_ucev_background(prep$lh_long, "CTR")

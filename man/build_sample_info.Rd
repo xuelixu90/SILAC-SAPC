@@ -2,20 +2,60 @@
 % Please edit documentation in R/sample_mapping.R
 \name{build_sample_info}
 \alias{build_sample_info}
-\title{Build the default sample mapping table}
+\title{Build the sample mapping table}
 \usage{
-build_sample_info()
+build_sample_info(
+  sample_names = NULL,
+  groups = NULL,
+  light_prefix = "Intensity L",
+  heavy_prefix = "Intensity H",
+  peptide_prefix = "Unique peptides"
+)
+}
+\arguments{
+\item{sample_names}{character vector of sample names exactly as they
+appear after the prefix in the workbook column names; \code{NULL} (default)
+uses the NP_1 samples}
+
+\item{groups}{character vector, same length as \code{sample_names}, giving the
+group of each sample; required when \code{sample_names} is supplied}
+
+\item{light_prefix}{prefixes used to build the
+workbook column names; defaults are the standard MaxQuant prefixes}
+
+\item{heavy_prefix}{prefixes used to build the
+workbook column names; defaults are the standard MaxQuant prefixes}
+
+\item{peptide_prefix}{prefixes used to build the
+workbook column names; defaults are the standard MaxQuant prefixes}
 }
 \value{
 A tibble with columns `sample_id`, `group`, `light_column`,
   `heavy_column`, `peptide_column`.
 }
 \description{
-The column names in the MaxQuant annotation workbook contain en dashes
-("–") rather than hyphens ("-"); this factory returns the mapping between
-logical samples/groups and the exact Excel column names.
+Maps logical samples/groups to the exact Excel column names. The column
+names in the default MaxQuant annotation workbook contain en dashes
+("–") rather than hyphens ("-").
+}
+\details{
+Called without arguments this returns the NP_1 default mapping. For other
+datasets, pass \code{sample_names} together with \code{groups}; the workbook column
+names are then built as \verb{<prefix> <sample_name>} (MaxQuant-style prefixes
+by default). If your workbook uses completely different column names,
+build the mapping tibble by hand with the columns \code{sample_id}, \code{group},
+\code{light_column}, \code{heavy_column}, \code{peptide_column} and pass it through the
+\code{sample_info} argument of \code{\link[=run_core_analysis]{run_core_analysis()}}.
 }
 \examples{
 si <- build_sample_info()
 head(si$sample_id)
+\dontrun{
+# A different dataset with column names such as "Intensity H WT_rep1":
+si2 <- build_sample_info(
+  sample_names = c("WT_rep1", "WT_rep2", "WT_rep3",
+                   "KO_rep1", "KO_rep2", "KO_rep3"),
+  groups = rep(c("WT", "KO"), each = 3)
+)
+}
 }
