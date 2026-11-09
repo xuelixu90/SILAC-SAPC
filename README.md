@@ -199,6 +199,10 @@ run_downstream_analysis(
                                             # reference_group; or set explicitly,
                                             # e.g. c("DGEV_PC_1-3", "UCEVPC")
   params          = serum_source_params(),  # thresholds (must match step 1)
+  annotation_cols = c(                      # column mapping (must match step 1)
+    protein_ids = "Protein IDs", protein_names = "Protein names",
+    gene_names = "Gene names"               # pass exactly what you used above
+  ),
   make_plots      = TRUE,                   # generate & save the 7 figures
   save_outputs    = TRUE,                   # write CSV / XLSX tables
   write_report    = TRUE,                   # build Analysis_Report.md

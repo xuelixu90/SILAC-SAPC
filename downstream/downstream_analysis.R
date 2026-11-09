@@ -623,7 +623,10 @@ find_notebook_rmd <- function() {
 render_analysis_notebook <- function(input_file,
                                      output_dir,
                                      sample_info = serumsource::build_sample_info(),
-                                     params = serumsource::serum_source_params()) {
+                                     params = serumsource::serum_source_params(),
+                                     annotation_cols = NULL,
+                                     reference_group = "UCEV",
+                                     target_groups = NULL) {
   if (!requireNamespace("rmarkdown", quietly = TRUE)) {
     warning("Package 'rmarkdown' is not installed. Skipping notebook render. ",
             "Install with:\n  install.packages(c('rmarkdown','knitr'))")
@@ -673,11 +676,15 @@ render_analysis_notebook <- function(input_file,
   }
 
   params_list <- list(
-    INPUT_FILE  = normalizePath(input_file, winslash = "/", mustWork = TRUE),
-    OUTPUT_DIR  = normalizePath(output_dir, winslash = "/", mustWork = TRUE),
-    PARAMS      = params,
-    SAMPLE_INFO = sample_info,
-    LIB_DIR     = lib_dir
+    INPUT_FILE      = normalizePath(input_file, winslash = "/", mustWork = TRUE),
+    OUTPUT_DIR      = normalizePath(output_dir, winslash = "/", mustWork = TRUE),
+    PARAMS          = params,
+    SAMPLE_INFO     = sample_info,
+    ANNOTATION_COLS = annotation_cols,
+    REFERENCE_GROUP = reference_group,
+    TARGET_GROUPS   = target_groups,
+    DOWNSTREAM_SCRIPT = file.path(dirname(rmd_src), "downstream_analysis.R"),
+    LIB_DIR         = lib_dir
   )
 
   message("Rendering HTML notebook ...")
@@ -772,6 +779,9 @@ render_analysis_notebook <- function(input_file,
 #'   groups in `sample_info` except `reference_group`
 #' @param reference_group reference group name (default "UCEV")
 #' @param make_plots logical, generate and save plots (default TRUE)
+#' @param annotation_cols named character vector mapping roles to workbook
+#'   column names; must match the mapping used for `core_result` so the
+#'   notebook re-run reproduces the same analysis
 #' @param save_outputs logical, write CSV/XLSX outputs (default TRUE)
 #' @param write_report logical, write the Markdown report (default TRUE)
 #' @param render_notebook logical, render the HTML/MD notebook (default TRUE)
@@ -783,6 +793,14 @@ run_downstream_analysis <- function(core_result,
                                     params = serumsource::serum_source_params(),
                                     target_groups = NULL,
                                     reference_group = "UCEV",
+                                    annotation_cols = c(
+                                      protein_ids = "Protein IDs",
+                                      representative_id = "Representative ID",
+                                      protein_names = "Protein names",
+                                      gene_names = "Gene names",
+                                      in_house_db = "In_house_db",
+                                      plasma_atlas_db = "Plasma_Altas_db"
+                                    ),
                                     make_plots = TRUE,
                                     save_outputs = TRUE,
                                     write_report = TRUE,
@@ -851,10 +869,13 @@ run_downstream_analysis <- function(core_result,
   notebook_output <- NULL
   if (render_notebook && save_outputs) {
     notebook_output <- render_analysis_notebook(
-      input_file  = input_file,
-      output_dir  = output_dir,
-      sample_info = sample_info,
-      params      = params
+      input_file      = input_file,
+      output_dir      = output_dir,
+      sample_info     = sample_info,
+      params          = params,
+      annotation_cols = annotation_cols,
+      reference_group = reference_group,
+      target_groups   = target_groups
     )
   }
 
@@ -928,6 +949,7 @@ run_full_analysis <- function(input_file,
     params = params,
     target_groups = target_groups,
     reference_group = reference_group,
+    annotation_cols = annotation_cols,
     make_plots = make_plots,
     save_outputs = save_outputs,
     write_report = write_report,

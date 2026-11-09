@@ -7,6 +7,10 @@ params:
   OUTPUT_DIR:  ~
   PARAMS:      ~
   SAMPLE_INFO: ~
+  ANNOTATION_COLS: ~
+  REFERENCE_GROUP: ~
+  TARGET_GROUPS: ~
+  DOWNSTREAM_SCRIPT: ~
   LIB_DIR:     ~
 output:
   html_notebook:
@@ -82,9 +86,13 @@ params_obj  <- if (inherits(params$PARAMS, "serum_source_params")) {
   do.call(serum_source_params, params$PARAMS)
 }
 sample_info <- if (is.null(params$SAMPLE_INFO)) build_sample_info() else params$SAMPLE_INFO
+reference_group <- if (is.null(params$REFERENCE_GROUP)) "UCEV" else params$REFERENCE_GROUP
+target_groups   <- params$TARGET_GROUPS        # NULL -> inferred from sample_info
+annotation_cols <- params$ANNOTATION_COLS      # NULL -> package defaults
 
 print(params_obj)
 cat("\nGroups to analyse:", paste(unique(sample_info$group), collapse = ", "), "\n")
+cat("Reference (control) group:", reference_group, "\n")
 ```
 
 ## Sample ↔ MaxQuant column mapping
@@ -95,7 +103,7 @@ knitr::kable(
                                  "light_column", "heavy_column",
                                  "peptide_column")],
   row.names = FALSE,
-  caption = "Sample mapping (en-dash MaxQuant column names)"
+  caption = "Sample mapping (workbook column names)"
 )
 ```
 
@@ -109,11 +117,15 @@ written yet -- that happens in the downstream steps.
 
 ```{r step1-run, fig.show='hide', results='hold'}
 start_time <- Sys.time()
-core <- run_core_analysis(
+core_args <- list(
   input_file      = input_file,
   sample_info     = sample_info,
+  reference_group = reference_group,
+  target_groups   = target_groups,
   params          = params_obj
 )
+if (!is.null(annotation_cols)) core_args$annotation_cols <- annotation_cols
+core <- do.call(run_core_analysis, core_args)
 elapsed <- round(difftime(Sys.time(), start_time, units = "secs"), 1)
 cat("Core computation finished in", as.numeric(elapsed), "seconds.\n")
 ```
@@ -210,6 +222,7 @@ directory.
 ```{r step4-source-downstream, message=TRUE}
 # Locate the downstream script relative to this notebook
 .ds_candidates <- c(
+  params$DOWNSTREAM_SCRIPT,
   file.path(dirname(knitr::current_input(dir = TRUE)), "downstream_analysis.R"),
   file.path(params$OUTPUT_DIR, "downstream_analysis.R"),
   file.path(getwd(), "downstream", "downstream_analysis.R")
