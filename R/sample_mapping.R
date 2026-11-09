@@ -67,8 +67,7 @@ build_sample_info <- function() {
       "Intensity H DGEV\u2013PC_4-9_3",
       "Intensity H UCEV\u2013PC_1",
       "Intensity H UCEV\u2013PC_2",
-      # NOTE: kept exactly as in the original analysis (no UCEV prefix)
-      "Intensity H EV\u2013PC_3"
+      "Intensity H UCEV\u2013PC_3"
     ),
     peptide_column = c(
       "Unique peptides UCEV_1",
