@@ -11,7 +11,7 @@ run_core_analysis(
   reference_group = "UCEV",
   target_groups = NULL,
   params = serum_source_params(),
-  annotation_cols = c(protein_ids = "Protein IDs", representative_id = "Representive ID",
+  annotation_cols = c(protein_ids = "Protein IDs", representative_id = "Representative ID",
     protein_names = "Protein names", gene_names = "Gene names",
     in_house_db = "In_house_db", plasma_atlas_db = "Plasma_Altas_db"),
   na = c("", " ", "NA", "NaN", "#N/A", "#DIV/0!")

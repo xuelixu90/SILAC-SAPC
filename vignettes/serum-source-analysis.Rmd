@@ -64,7 +64,7 @@ same column layout as a MaxQuant annotation table.
 ```{r mini-data}
 mini <- tibble::tibble(
   `Protein IDs` = c("P_ALB", "P_RES", "P_ACQ"),
-  `Representive ID` = c("P_ALB", "P_RES", "P_ACQ"),
+  `Representative ID` = c("P_ALB", "P_RES", "P_ACQ"),
   `Protein names` = c("Albumin", "Residual", "Acquired"),
   `Gene names` = c("ALB", "RES", "ACQ"),
   In_house_db = c("in_house_serum", NA, NA),

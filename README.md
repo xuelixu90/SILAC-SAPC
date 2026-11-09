@@ -147,7 +147,7 @@ keys to the actual column names in **your** workbook:
 ```r
 run_core_analysis(input_file, annotation_cols = c(
   protein_ids       = "Protein IDs",
-  representative_id = "Representive ID",
+  representative_id = "Representative ID",
   protein_names     = "Protein names",
   gene_names        = "Gene names",
   in_house_db       = "In_house_db",

@@ -8,7 +8,7 @@ prepare_long_data(
   raw_data,
   sample_info = build_sample_info(),
   min_light_dominance_ratio = 0.7,
-  annotation_cols = c(protein_ids = "Protein IDs", representative_id = "Representive ID",
+  annotation_cols = c(protein_ids = "Protein IDs", representative_id = "Representative ID",
     protein_names = "Protein names", gene_names = "Gene names",
     in_house_db = "In_house_db", plasma_atlas_db = "Plasma_Altas_db")
 )

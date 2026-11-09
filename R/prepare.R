@@ -95,7 +95,7 @@ prepare_long_data <- function(raw_data,
                               min_light_dominance_ratio = 0.70,
                               annotation_cols = c(
                                 protein_ids = "Protein IDs",
-                                representative_id = "Representive ID",
+                                representative_id = "Representative ID",
                                 protein_names = "Protein names",
                                 gene_names = "Gene names",
                                 in_house_db = "In_house_db",

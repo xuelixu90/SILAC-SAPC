@@ -893,7 +893,7 @@ run_full_analysis <- function(input_file,
                               params = serumsource::serum_source_params(),
                               annotation_cols = c(
                                 protein_ids = "Protein IDs",
-                                representative_id = "Representive ID",
+                                representative_id = "Representative ID",
                                 protein_names = "Protein names",
                                 gene_names = "Gene names",
                                 in_house_db = "In_house_db",
