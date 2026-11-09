@@ -142,7 +142,7 @@ cat("Annotated proteins (rows)           :",
     formatC(nrow(core$annotation), format = "d", big.mark = ","), "\n")
 cat("Per-protein / per-replicate rows    :",
     formatC(nrow(core$lh_long), format = "d", big.mark = ","), "\n")
-cat("UCEV proteins (SD estimate base)    :",
+cat(sprintf("%s proteins (SD estimate base)    :", reference_group),
     formatC(length(unique(core$ucev_sd$Protein_Row_ID)),
             format = "d", big.mark = ","), "\n")
 cat("Global Light-fraction SD floor      :",

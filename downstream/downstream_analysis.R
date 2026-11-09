@@ -83,7 +83,7 @@ plot_classification_summary <- function(case_summary) {
 }
 
 #' Distribution of Light-fraction excess per comparison
-plot_excess_distribution <- function(results_df) {
+plot_excess_distribution <- function(results_df, reference_label = "UCEV") {
   primary <- serumsource::primary_serum_categories()
   results_df <- results_df %>%
     mutate(is_primary = classification %in% primary)
@@ -100,8 +100,8 @@ plot_excess_distribution <- function(results_df) {
     geom_hline(yintercept = 0, linetype = "dashed", color = "grey40") +
     scale_color_manual(values = .classification_palette, na.translate = FALSE) +
     labs(
-      title = "Light-fraction excess over UCEV background",
-      x = NULL, y = "Light fraction excess (target - UCEV baseline)",
+      title = sprintf("Light-fraction excess over %s background", reference_label),
+      x = NULL, y = sprintf("Light fraction excess (target - %s baseline)", reference_label),
       color = "Primary classification"
     ) +
     theme_bw(base_size = 12) +
@@ -213,11 +213,12 @@ plot_database_evidence <- function(primary_df) {
 }
 
 #' Distribution of UCEV background Light-fraction SD
-plot_ucev_background <- function(ucev_sd, global_floor = NULL) {
+plot_ucev_background <- function(ucev_sd, global_floor = NULL,
+                                 reference_label = "UCEV") {
   p <- ggplot(ucev_sd, aes(x = UCEV_Light_fraction_sd)) +
     geom_histogram(bins = 40, fill = "#4E79A7", color = "white") +
     labs(
-      title = "UCEV background variation of Light fraction",
+      title = sprintf("%s background variation of Light fraction", reference_label),
       x = "Robust SD of Light fraction (per protein)",
       y = "Number of proteins"
     ) +
@@ -481,7 +482,8 @@ write_analysis_report <- function(output_dir,
                                   database_summary,
                                   all_results,
                                   ucev_sd,
-                                  global_fraction_sd_floor) {
+                                  global_fraction_sd_floor,
+                                  reference_group = "UCEV") {
   primary <- serumsource::primary_serum_categories()
 
   cls_wide <- case_summary %>%
@@ -539,11 +541,14 @@ write_analysis_report <- function(output_dir,
     "Tool: R package `serumsource` v",
     utils::packageVersion("serumsource"), "\n\n",
     "## 1. Method Overview\n\n",
-    "Using UCEV as the control group, each target group is compared ",
+    sprintf("Using %s as the control group, each target group is compared ",
+            reference_group),
     "protein-by-protein on the Light channel fraction ",
     "(Light / (Light + Heavy)). Proteins whose target-group Light ",
-    "fraction significantly exceeds the UCEV background are classified ",
-    "as serum-derived, and p0 (the UCEV heavy-labeling rate) is used to ",
+    sprintf("fraction significantly exceeds the %s background are classified ",
+            reference_group),
+    "as serum-derived, and p0 (the ",
+    sprintf("%s heavy-labeling rate) is used to ", reference_group),
     "source-correct and estimate the serum fraction. ",
     "Classification confidence is determined jointly by the Light-fraction ",
     "excess, replicate support count, CV, and CI separation.\n",
@@ -551,7 +556,7 @@ write_analysis_report <- function(output_dir,
     "Acquired-only classification (Level 1/2) is applied instead.\n\n",
     "## 2. Analysis Parameters\n\n",
     md_table(par_tbl), "\n\n",
-    "## 3. UCEV Background Variation\n\n",
+    sprintf("## 3. %s Background Variation\n\n", reference_group),
     sprintf(
       "Proteins used for background estimation: %d; median robust SD of Light fraction = %.4f, P90 = %.4f, global SD floor = %.4f.\n\n",
       ucev_stats[["n"]], ucev_stats[["median_sd"]], ucev_stats[["p90_sd"]],
@@ -820,11 +825,14 @@ run_downstream_analysis <- function(core_result,
   if (make_plots) {
     plots <- list(
       classification_summary = plot_classification_summary(core_result$case_summary),
-      excess_distribution = plot_excess_distribution(core_result$results),
+      excess_distribution = plot_excess_distribution(
+        core_result$results, reference_label = reference_group
+      ),
       serum_fraction = plot_serum_fraction(core_result$primary_serum),
       database_evidence = plot_database_evidence(core_result$primary_serum),
       ucev_background = plot_ucev_background(
-        core_result$ucev_sd, core_result$global_fraction_sd_floor
+        core_result$ucev_sd, core_result$global_fraction_sd_floor,
+        reference_label = reference_group
       ),
       excess_vs_probability = plot_excess_vs_probability(core_result$results),
       excess_heatmap = plot_excess_heatmap(core_result$results)
@@ -862,7 +870,8 @@ run_downstream_analysis <- function(core_result,
       database_summary = core_result$database_summary,
       all_results = core_result$results,
       ucev_sd = core_result$ucev_sd,
-      global_fraction_sd_floor = core_result$global_fraction_sd_floor
+      global_fraction_sd_floor = core_result$global_fraction_sd_floor,
+      reference_group = reference_group
     )
   }
 
