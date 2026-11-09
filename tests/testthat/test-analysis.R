@@ -79,6 +79,37 @@ test_that("prepare_long_data builds valid flags and fractions", {
   expect_true(all(c("Database_evidence", "Gene_names") %in% names(lh)))
 })
 
+test_that("optional annotation columns can be omitted", {
+  mini <- make_mini_data()
+  mini_min <- mini[, !names(mini) %in% c("Representative ID", "In_house_db", "Plasma_Altas_db")]
+
+  prep_full <- prepare_long_data(mini, make_mini_sample_info())
+  prep_min <- prepare_long_data(mini_min, make_mini_sample_info())
+
+  keep <- c("Protein_Row_ID", "sample_id", "group", "Light", "Heavy", "Light_fraction")
+  expect_equal(prep_full$lh_long[keep], prep_min$lh_long[keep])
+
+  expect_true(all(is.na(prep_min$annotation$Representative_ID)))
+  expect_true(all(prep_min$lh_long$Database_evidence == "Not annotated in either database"))
+
+  tmp_xlsx <- tempfile(fileext = ".xlsx")
+  on.exit(unlink(tmp_xlsx), add = TRUE)
+  writexl::write_xlsx(list(Sheet1 = mini_min), path = tmp_xlsx)
+  res <- run_core_analysis(
+    input_file = tmp_xlsx,
+    sample_info = make_mini_sample_info(),
+    reference_group = "CTR",
+    target_groups = "TGT"
+  )
+
+  alb <- res$results %>% dplyr::filter(Protein_Row_ID == "P_ALB")
+  expect_equal(alb$classification, "Source-corrected, high confidence")
+  acq <- res$results %>% dplyr::filter(Protein_Row_ID == "P_ACQ")
+  expect_equal(acq$classification, "Acquired-only (Level 1)")
+  expect_true(all(res$database_summary$Database_evidence ==
+                    "Not annotated in either database"))
+})
+
 test_that("compute_ucev_background returns floor", {
   prep <- prepare_long_data(make_mini_data(), make_mini_sample_info())
   bg <- compute_ucev_background(prep$lh_long, "CTR")

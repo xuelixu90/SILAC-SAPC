@@ -142,7 +142,10 @@ print(core$case_summary, n = 100)
 | `na` | MaxQuant NA strings | Other missing-value codes in your table |
 
 `annotation_cols` is the one to watch for new datasets - it maps logical
-keys to the actual column names in **your** workbook:
+keys to the actual column names in **your** workbook. Only `protein_ids`,
+`protein_names` and `gene_names` are required; `representative_id`,
+`in_house_db` and `plasma_atlas_db` are optional (they only enrich the
+output annotation and are skipped when the columns are missing):
 
 ```r
 run_core_analysis(input_file, annotation_cols = c(

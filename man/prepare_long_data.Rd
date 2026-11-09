@@ -22,9 +22,10 @@ prepare_long_data(
 
 \item{annotation_cols}{named character vector mapping logical keys to the
 actual column names in the workbook. Required keys: \code{protein_ids},
-\code{representative_id}, \code{protein_names}, \code{gene_names},
-\code{in_house_db}, \code{plasma_atlas_db}. Defaults match the NP_1 MaxQuant
-annotation workbook.}
+\code{protein_names}, \code{gene_names}. Optional keys:
+\code{representative_id}, \code{in_house_db}, \code{plasma_atlas_db} (only
+used for output annotation; filled with \code{NA} when the column is
+absent). Defaults match the NP_1 MaxQuant annotation workbook.}
 }
 \value{
 list with elements \code{data_converted}, \code{annotation}, \code{lh_long}

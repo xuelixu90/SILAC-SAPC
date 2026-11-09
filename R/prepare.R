@@ -86,8 +86,10 @@ prepare_annotation <- function(data, annotation_cols = c(
 #' @param min_light_dominance_ratio Light dominance ratio (default 0.70)
 #' @param annotation_cols named character vector mapping logical keys to the
 #'   actual column names in the workbook. Required keys: `protein_ids`,
-#'   `representative_id`, `protein_names`, `gene_names`, `in_house_db`,
-#'   `plasma_atlas_db`. Defaults match the NP_1 MaxQuant annotation workbook.
+#'   `protein_names`, `gene_names`. Optional keys: `representative_id`,
+#'   `in_house_db`, `plasma_atlas_db` (only used for output annotation;
+#'   filled with `NA` when the column is absent). Defaults match the NP_1
+#'   MaxQuant annotation workbook.
 #' @return list with elements `data_converted`, `annotation`, `lh_long`
 #' @export
 prepare_long_data <- function(raw_data,
@@ -104,7 +106,13 @@ prepare_long_data <- function(raw_data,
   eps <- 1e-12
   ann <- as.list(annotation_cols)
 
-  required_anno <- unname(unlist(ann))
+  ## `representative_id`, `in_house_db` and `plasma_atlas_db` are optional:
+  ## they only feed output annotation (row label / Database_evidence) and are
+  ## never used by the classification itself. When the mapped column is
+  ## absent from the input, a placeholder NA column is added so the analysis
+  ## runs unchanged.
+  optional_keys <- c("representative_id", "in_house_db", "plasma_atlas_db")
+  required_anno <- unname(unlist(ann[setdiff(names(ann), optional_keys)]))
   missing_anno <- setdiff(required_anno, names(raw_data))
   if (length(missing_anno) > 0) {
     stop(
@@ -113,6 +121,15 @@ prepare_long_data <- function(raw_data,
       call. = FALSE
     )
   }
+  for (k in optional_keys) {
+    if (is.null(ann[[k]])) {
+      ann[[k]] <- paste0(".placeholder_", k)
+    }
+    if (!ann[[k]] %in% names(raw_data)) {
+      raw_data[[ann[[k]]]] <- NA_character_
+    }
+  }
+  annotation_cols <- unlist(ann)
 
   data <- raw_data %>%
     dplyr::mutate(
