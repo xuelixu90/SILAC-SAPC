@@ -163,15 +163,25 @@ test_that("analyze_one_group classifies mini proteins correctly", {
   expect_equal(round(alb$UCEV_heavy_labeling_p0, 3), 0.333)
   expect_equal(round(alb$estimated_serum_fraction, 3), 0.5)
 
+  # Peptide-evidence columns: Level 1 call has >=2-peptide paired support,
+  # an explicit Level label, and unassigned rows stay blank
+  expect_true(all(c("Peptide_Evidence_Level", "Target_High_Pep_Paired_Reps",
+                    "Target_Single_Pep_Paired_Reps") %in% names(res)))
+  expect_equal(alb$Peptide_Evidence_Level, "Level 1 (>=2 unique peptides)")
+  expect_true(alb$Target_High_Pep_Paired_Reps >= 2)
+
   res_alb_num <- res %>% dplyr::filter(Protein_Row_ID == "P_ALB")
   expect_true(abs(res_alb_num$Light_fraction_excess - 1 / 6) < 1e-3)
 
   acq <- res %>% dplyr::filter(Protein_Row_ID == "P_ACQ")
   expect_equal(acq$classification, "Acquired-only (Level 1)")
   expect_true(acq$Control_Is_Absent)
+  expect_equal(acq$Peptide_Evidence_Level, "Level 1 (>=2 unique peptides)")
+  expect_true(acq$Target_High_Pep_L_Dom_Reps >= 2)
 
   resi <- res %>% dplyr::filter(Protein_Row_ID == "P_RES")
   expect_true(resi$classification %in% c("Ambiguous", "Likely_residual"))
+  expect_true(is.na(resi$Peptide_Evidence_Level))
 })
 
 test_that("calibrate_serum_light adds calibrated columns", {

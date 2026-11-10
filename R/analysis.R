@@ -245,11 +245,26 @@ analyze_one_group <- function(lh_long,
       )
     }
 
+    peptide_level <- dplyr::case_when(
+      classification %in% c(
+        "Acquired-only (Level 1)",
+        "Source-corrected, high confidence",
+        "Source-corrected, medium confidence"
+      ) ~ "Level 1 (>=2 unique peptides)",
+      classification %in% c(
+        "Acquired-only (Level 2)",
+        "Source-corrected, single-peptide strong candidate",
+        "Source-corrected, single-peptide candidate"
+      ) ~ "Level 2 (1 unique peptide)",
+      TRUE ~ NA_character_
+    )
+
     tibble::tibble(
       Protein_Row_ID = protein_id,
       comparison = comparison_name,
       assigned_case = assigned_case,
       classification = classification,
+      Peptide_Evidence_Level = peptide_level,
 
       Target_Both_LH_Valid_Reps = n_valid_tgt_lh,
       Control_Both_LH_Valid_Reps = n_valid_ref_lh,
@@ -257,6 +272,8 @@ analyze_one_group <- function(lh_long,
       Target_L_Dominant_Reps = n_tgt_l_dom,
       Target_High_Pep_L_Dom_Reps = n_tgt_high_pep_l_dom,
       Target_Single_Pep_L_Dom_Reps = n_tgt_single_pep_l_dom,
+      Target_High_Pep_Paired_Reps = n_tgt_high_pep_paired,
+      Target_Single_Pep_Paired_Reps = n_tgt_single_pep_paired,
 
       Control_Is_Absent = ref_control_absent,
 

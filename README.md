@@ -269,6 +269,21 @@ protein was **acquired** by the EVs, not corrected against a background ->
 `Acquired-only (Level 1)` (>= 2 peptides) / `Acquired-only (Level 2)`
 (1 peptide).
 
+### 4.4 Peptide-evidence columns in the outputs
+
+To make the Level 1 / Level 2 evidence explicit, each result row carries
+per-replicate evidence counters and a plain label:
+
+| Column | Meaning |
+|---|---|
+| `Target_High_Pep_Paired_Reps` / `Target_Single_Pep_Paired_Reps` | Replicates with a valid Light/Heavy pair measured with >= 2 / exactly 1 unique peptides — the evidence behind Source-corrected calls |
+| `Target_High_Pep_L_Dom_Reps` / `Target_Single_Pep_L_Dom_Reps` | Same peptide rule applied to Light-dominant replicates — the evidence behind Acquired-only calls |
+| `Peptide_Evidence_Level` | `Level 1 (>=2 unique peptides)` or `Level 2 (1 unique peptide)`, matching the peptide-evidence rows in the classification criteria; blank for proteins that received no serum-source category |
+
+Note: the L-dominant counters are diagnostic only for Source-corrected rows
+(those are called from paired Light-fraction excess, not from Light
+dominance), so zeros there are expected and do not weaken the call.
+
 `Primary serum categories` = the 4 strong-evidence labels above
 (Acquired L1/L2 + corrected high/medium confidence).
 

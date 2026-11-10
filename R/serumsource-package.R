@@ -16,6 +16,8 @@ utils::globalVariables(c(
   "Target_L_Dominant_Rep", "Light", "Heavy", "Total_Light_Heavy",
   "group", "n_valid_reps", "UCEV_Light_fraction_sd", "Light_fraction",
   "classification", "comparison", "assigned_case", "Database_evidence",
+  "Peptide_Evidence_Level", "Target_High_Pep_Paired_Reps",
+  "Target_Single_Pep_Paired_Reps",
   "protein_count", ".data"
 ))
 
