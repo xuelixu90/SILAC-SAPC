@@ -380,7 +380,7 @@ with the NP_1 dataset is available in `docs/index.html`.
 > [plain-language usage guide](https://xuelixu90.github.io/SILAC-SAPC/usage.html)
 > — copy-paste code, change two paths, done.
 
-The report reproduces the full Heavy/Light serum-source workflow: 5,284
+The report reproduces the full Heavy/Light serum-source workflow: 5,298
 proteins across 4 target groups vs the UCEV control, producing a
 classification summary of 54 rows and 535 primary serum-derived proteins
 (value-by-value identical to the original script).
